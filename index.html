@@ -1,47 +1,173 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <title>&lt;model-viewer&gt; Augmented Reality</title>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, user-scalable=no,
-  minimum-scale=1.0, maximum-scale=1.0">
-  <link rel="stylesheet" href="styles.css">
+<html>
+    <head>
+        <title>DataViz HTML Example - Building</title>
+        <link
+            rel="stylesheet"
+            href="https://developer.api.autodesk.com/modelderivative/v2/viewers/7.*/style.min.css"
+            type="text/css"
+        />
+        <meta
+            name="viewport"
+            content="width=device-width, minimum-scale=1.0, initial-scale=1, user-scalable=no"
+        />
+        <meta charset="utf-8" />
 
-  <!-- 💁 Include both scripts below to support all browsers! -->
+        <style>
+            #forgeViewer {
+                width: 100%;
+                height: 100%;
+            }
+        </style>
 
-  <!-- Loads <model-viewer> for modern browsers: -->
-  <script type="module"
-      src="https://unpkg.com/@google/model-viewer/dist/model-viewer.js">
-  </script>
+        <script src="https://developer.api.autodesk.com/modelderivative/v2/viewers/7.*/viewer3D.js"></script>
+        <script src="https://6jm6lvl74k.execute-api.us-west-2.amazonaws.com/latest/_adsk.js"></script>
 
-  <!-- Loads <model-viewer> for old browsers like IE11: -->
-  <script nomodule
-      src="https://unpkg.com/@google/model-viewer/dist/model-viewer-legacy.js">
-  </script>
+        <script>
+            //var urn = "urn:dXJuOmFkc2sud2lwcHJvZDpmcy5maWxlOnZmLlpxa0N4eUV6Ui1Pcmg4ZXFWUDVybmc_dmVyc2lvbj0z"//utility knife
+               // var urn = "urn:dXJuOmFkc2sud2lwcHJvZDpmcy5maWxlOnZmLjBPV0F4czJOUlB5RURKQUg5YjBqR2c_dmVyc2lvbj0x" // pimbre
+                //"urn:dXJuOmFkc2sub2JqZWN0czpvcy5vYmplY3Q6cmFodWwtdGVzdC9QRU1CUkVFJTIwRDJBJTIwJTIwLSUyMEZpbmFsJTIwVmVyc2lvbiUyMHYyLmYzZA"
+            var urn="urn:dXJuOmFkc2sud2lwcHJvZDpmcy5maWxlOnZmLmd2aFd1a09tU1Nha2NFUDJqQ2Yya3c_dmVyc2lvbj0x"
+            var sensorStyleDefinitions = {
+                co2: {
+                    url: "https://d2zqnmauvnpnnm.cloudfront.net/assets-1/images/co2.svg",
+                    color: 0xffffff,
+                },
+                temperature: {
+                    url: "https://d2zqnmauvnpnnm.cloudfront.net/assets-1/images/thermometer.svg",
+                    color: 0xffffff,
+                },
+                default: {
+                    url: "https://d2zqnmauvnpnnm.cloudfront.net/assets-1/images/circle.svg",
+                    color: 0xffffff,
+                },
+            };
 
-  <!-- The following libraries and polyfills are recommended to maximize browser support -->
-  <!-- NOTE: you must adjust the paths as appropriate for your project -->
-      
-  <!-- 🚨 REQUIRED: Web Components polyfill to support Edge and Firefox < 63 -->
-  <script src="https://unpkg.com/@webcomponents/webcomponentsjs@2.1.3/webcomponents-loader.js"></script>
+            let devices = [
+                {
+                    id: "Hall 85",
+                    position: {
+                        x: 31.945194312366482,
+                        y: 101.11616501336187,
+                        z: 6.807743072509766,
+                    },
+                    type: "temperature",
+                    sensorTypes: ["temperature"],
+                },
+                {
+                    id: "Hall III 72",
+                    position: {
+                        x: -98.96997142930644,
+                        y: 242.22996463496446,
+                        z: 8.035340592265129,
+                    },
+                    type: "combo",
+                    sensorTypes: ["co2", "temperature"],
+                },
+            ];
 
-  <!-- 💁 OPTIONAL: Intersection Observer polyfill for better performance in Safari and IE11 -->
-  <script src="https://unpkg.com/intersection-observer@0.5.1/intersection-observer.js"></script>
+            function initPage() {
+                var av = Autodesk.Viewing;
 
-  <!-- 💁 OPTIONAL: Resize Observer polyfill improves resize behavior in non-Chrome browsers -->
-  <script src="https://unpkg.com/resize-observer-polyfill@1.5.1/dist/ResizeObserver.js"></script>
+                var viewer;
+                var options = {
+                    env: "AutodeskProduction",
+                    api: "derivativeV2", // for models uploaded to EMEA change this option to 'derivativeV2_EU'
+                    accessToken: "eyJhbGciOiJSUzI1NiIsImtpZCI6IlU3c0dGRldUTzlBekNhSzBqZURRM2dQZXBURVdWN2VhIn0.eyJzY29wZSI6WyJkYXRhOndyaXRlIiwiZGF0YTpyZWFkIl0sImNsaWVudF9pZCI6IlBTbDUzOUZUSGRlWTFzaUFVWUhiczY5QU5uYXVSTEVpIiwiYXVkIjoiaHR0cHM6Ly9hdXRvZGVzay5jb20vYXVkL2Fqd3RleHA2MCIsImp0aSI6InV4RXlsQmE5TlBsRE5GVk1MTEpxdGJsVFlJczg3SVVpNkJ1SkZkWkR1Mkh2RlFJWTNLQVZiaTZxUUp5YXRvZm0iLCJ1c2VyaWQiOiJHVFVKMjhVWUpHNlhMMjNUIiwiZXhwIjoxNjY4MTc4OTE1fQ.aqml3JkK53AKJ-yXcmaEjzVLm-jYzu5CjjfTXx82-fOJ9Mj-RFOzM14c-VdXv2C2yl6mL8H6PVkk2XH9WKn2gAjVRODkhQQ-OJ5laBveseLRGAOhtF8tSRFKJnNTcK6e7rDtEfqqH-IKGHqwE_8gXaHachivaUCDIoARTzpjduc-YUQRMwmOzN4XOVAMot4Yy7Z16zNCTytXsIngmQABYT-XhPIaF4e5skafhv_sxqKqvs7ZIgR0XnhKNgHXhGh2uFoibmbH6hZhFnc9TocHWXDJaVdQA3VoBYSMt1qMT8-6n5By820odjyJ1deRh1mmEVHGOCsHMLO2vGcwSh-qIA"
+                };
 
-  <!-- 💁 OPTIONAL: Fullscreen polyfill is required for experimental AR features in Canary -->
-  <!--<script src="https://unpkg.com/fullscreen-polyfill@1.0.2/dist/fullscreen.polyfill.js"></script>-->
+                Autodesk.Viewing.Initializer(options, function () {
+                    var htmlDiv = document.getElementById("forgeViewer");
+                    const viewer = new Autodesk.Viewing.GuiViewer3D(htmlDiv);
 
-  <!-- 💁 OPTIONAL: Include prismatic.js for Magic Leap support -->
-  <!--<script src="https://unpkg.com/@magicleap/prismatic@0.18.2/prismatic.min.js"></script>-->
+                    const startedCode = viewer.start(
+                        undefined,
+                        undefined,
+                        undefined,
+                        undefined,
+                        options
+                    );
+                    if (startedCode > 0) {
+                        console.error("Failed to create a Viewer: WebGL not supported.");
+                        return;
+                    }
 
-</head>
-<body>
-  <model-viewer src="36460.gltf" ar auto-rotate="" camera-controls="" shadow-intensity="1" alt="A 3D model of a rocket" background-color="#70BCD1">
-                  
-  </model-viewer>
+                    console.log("Initialization complete, loading a model next...");
+                    viewer.addEventListener(av.GEOMETRY_LOADED_EVENT, onModelLoaded, {
+                        once: true,
+                    });
+                    loadModel(viewer, urn);
+                });
 
+                function loadModel(viewer, documentId) {
+                    Autodesk.Viewing.Document.load(
+                        urn,
+                        onDocumentLoadSuccess,
+                        onDocumentLoadFailure
+                    );
 
-</body></html>
+                    function onDocumentLoadSuccess(viewerDocument) {
+                        var defaultModel = viewerDocument.getRoot().getDefaultGeometry(true);
+                        viewer.loadDocumentNode(viewerDocument, defaultModel);
+                    }
+
+                    function onDocumentLoadFailure() {
+                        console.error("Failed fetching Forge manifest");
+                    }
+                }
+            }
+
+            async function onModelLoaded(data) {
+                var viewer = data.target;
+                const dataVizExt = await viewer.loadExtension("Autodesk.DataVisualization");
+                const {
+                        SurfaceShadingData,
+                        SurfaceShadingPoint,
+                        SurfaceShadingNode,
+                    } = Autodesk.DataVisualization.Core;
+                    const PropIdGradientMap = {
+                  "CO2": [0x1e9600, 0xfff200, 0xff0000],
+                };
+                const surfaceShadingConfig = {
+                    gradientSetting: PropIdGradientMap,
+                };
+                const heatmapData = new SurfaceShadingData();
+                
+                var renderNodes = new Array();
+                function getCO2Value() {
+                    var co2value = Math.random();
+                    console.log("cor value", co2value)
+                    return co2value;
+                }
+                const tree = viewer.model.getInstanceTree();
+                    const rootId = tree.getRootId();
+                    tree.enumNodeChildren(
+                        rootId,
+                        function (dbId) {
+                            console.log("Node name", tree.getNodeName(dbId));
+                            var childCount = tree.getChildCount(dbId);
+                            if (childCount === 0){
+                                const shadingNode = new SurfaceShadingNode(tree.getNodeName(dbId), dbId);
+                                const shadingPoint = new SurfaceShadingPoint(dbId, undefined, ["CO2"]);
+                                shadingPoint.positionFromDBId(data.model, dbId);
+                                shadingNode.addPoint(shadingPoint);
+                                heatmapData.addChild(shadingNode);
+                                renderNodes.push(tree.getNodeName(dbId));
+                            }
+                        },
+                        true
+                        );
+                        heatmapData.initialize(data.model);
+                        await dataVizExt.setupSurfaceShading(data.model, heatmapData);
+                        dataVizExt.registerSurfaceShadingColors("CO2", [0x00ff00, 0xff0000]);
+                        renderNodes.map(obj=>{
+                            dataVizExt.renderSurfaceShading(obj, "CO2", getCO2Value);
+                        });
+                }
+        </script>
+    </head>
+
+    <body onload="initPage()" style="margin:0;height:100vh;">
+        <div id="forgeViewer"></div>
+    </body>
+</html>
